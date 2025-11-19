@@ -4,3 +4,4 @@ pillow
 # Leave numpy unpinned (TensorFlow will provide a compatible version)
 tensorflow-cpu==2.20.0
 whitenoise
+setuptools<81
