@@ -46,63 +46,62 @@ python manage.py collectstatic --noinput || true
 PORT=${PORT:-8000}
 echo "Preparing to start server on 0.0.0.0:${PORT} with args: ${GUNICORN_CMD_ARGS}"
 
-# Helper: check whether the port is already in use and try to free it.
-free_port_if_needed() {
+# Log port owner if present, but do NOT try to free/kill it — let the
+# hosting platform (Render) manage port assignments and lifecycle.
+log_port_owner() {
 	local port=$1
-	# Try to find a pid listening on the TCP port using ss (works on most Linux hosts)
+	pid=""
 	if command -v ss >/dev/null 2>&1; then
 		pid=$(ss -ltnp 2>/dev/null | awk -v p=":${port}" '$0 ~ p { if(match($0, /pid=[0-9]+/)) { m=substr($0,RSTART,RLENGTH); sub(/pid=/, "", m); print m; exit } }') || true
-	else
-		pid=""
 	fi
-	# Fallbacks: try lsof or netstat if ss did not return a PID
 	if [ -z "${pid}" ]; then
 		if command -v lsof >/dev/null 2>&1; then
 			pid=$(lsof -tiTCP:${port} -sTCP:LISTEN 2>/dev/null | head -n1 || true)
-		elif command -v netstat >/dev/null 2>&1; then
-			pid=$(netstat -tunlp 2>/dev/null | awk -v p=":${port}" '$0 ~ p { if(match($0, /[0-9]+\/[^ ]+/)) { split($0,a," "); for(i=1;i<=NF;i++){ if(a[i] ~ /\/./){ split(a[i],b,"/"); print b[1]; exit } } } }' | head -n1 || true)
 		fi
 	fi
-
 	if [ -n "${pid}" ]; then
 		owner_cmd=""
 		if [ -r "/proc/${pid}/cmdline" ]; then
 			owner_cmd=$(tr '\0' ' ' < /proc/${pid}/cmdline || true)
 		fi
-		echo "Port ${port} is currently used by pid ${pid}. Command: ${owner_cmd}. Attempting to stop it..."
-		# Try graceful termination
-		kill -TERM "${pid}" 2>/dev/null || true
-		# Wait up to 5 seconds for process to exit
-		for i in 1 2 3 4 5; do
-			sleep 1
-			if ! ss -ltnp 2>/dev/null | grep -q ":${port} "; then
-				echo "Port ${port} freed after SIGTERM"
-				return 0
-			fi
-		done
-		echo "Process ${pid} did not exit; sending SIGKILL..."
-		kill -KILL "${pid}" 2>/dev/null || true
-		sleep 1
-		if ss -ltnp 2>/dev/null | grep -q ":${port} "; then
-			echo "Warning: port ${port} is still in use after SIGKILL; aborting start to avoid conflicts."
-			return 1
-		fi
-		echo "Port ${port} freed after SIGKILL"
+		echo "Note: port ${port} is currently used by pid ${pid}. Command: ${owner_cmd}. Not attempting to free it; letting Render manage lifecycle."
+	else
+		echo "No existing listener found on port ${port}."
 	fi
-	return 0
 }
 
-# Ensure the port is free (preempt conflicting processes)
-if ! free_port_if_needed "${PORT}"; then
-	echo "Failed to free port ${PORT}; exiting to avoid duplicate listeners."
-	exit 1
-fi
+# Record current owner but do not kill it; Render controls lifecycle
+log_port_owner "${PORT}"
 
 # If gunicorn is available use it (production). Otherwise fall back to Django runserver (useful for local Windows/Git Bash testing).
+AUTO_INSTALL_GUNICORN=${AUTO_INSTALL_GUNICORN:-0}
 if command -v gunicorn >/dev/null 2>&1; then
+	echo "gunicorn found: $(gunicorn --version 2>&1 | head -n1)"
 	echo "Starting Gunicorn on 0.0.0.0:${PORT}"
 	exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
 else
-	echo "gunicorn not found, falling back to 'python manage.py runserver' (for local testing only)"
+	echo "gunicorn not found in PATH. Checking installed Python packages..."
+	if python -m pip show gunicorn >/dev/null 2>&1; then
+		echo "gunicorn is installed in the Python environment (pip), but not on PATH. Showing 'pip show':"
+		python -m pip show gunicorn || true
+	else
+		echo "gunicorn not installed in Python environment. Showing top of 'pip freeze' to help debug:" 
+		python -m pip freeze | head -n 50 || true
+	fi
+
+	if [ "${AUTO_INSTALL_GUNICORN}" = "1" ]; then
+		echo "AUTO_INSTALL_GUNICORN=1: attempting to install gunicorn via pip..."
+		python -m pip install --no-cache-dir "gunicorn==20.1.0" || true
+		if command -v gunicorn >/dev/null 2>&1; then
+			echo "gunicorn installed; starting gunicorn now"
+			exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
+		else
+			echo "gunicorn still not found after installation attempt; falling back to runserver"
+		fi
+	else
+		echo "Note: to auto-install gunicorn at startup set ENV AUTO_INSTALL_GUNICORN=1 (not recommended for production builds)."
+	fi
+
+	echo "Falling back to Django development server for now"
 	exec python manage.py runserver 0.0.0.0:${PORT}
 fi
