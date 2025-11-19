@@ -24,7 +24,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
-# Run any pending migrations (safe to ignore failures in some environments)
+# Acquire a filesystem lock so only one process in this container performs
+# migrations/collectstatic and starts the server. This prevents race
+# conditions where multiple start commands try to bind the same PORT.
+LOCK_FILE=/tmp/app_start.lock
+exec 9>"${LOCK_FILE}"
+echo "Acquiring start lock ${LOCK_FILE} (this will block if another process is starting)..."
+# Block until we can acquire the exclusive lock on fd 9. The FD is kept
+# open across exec so that the lock remains held for the lifetime of the
+# server process that replaces this script via exec.
+flock -x 9
+
+# Now we hold the lock. Run any pending migrations (safe to ignore failures in some environments)
 echo "Running migrations... (cwd=${REPO_ROOT})"
 python manage.py migrate --noinput || true
 
@@ -44,9 +55,21 @@ free_port_if_needed() {
 	else
 		pid=""
 	fi
+	# Fallbacks: try lsof or netstat if ss did not return a PID
+	if [ -z "${pid}" ]; then
+		if command -v lsof >/dev/null 2>&1; then
+			pid=$(lsof -tiTCP:${port} -sTCP:LISTEN 2>/dev/null | head -n1 || true)
+		elif command -v netstat >/dev/null 2>&1; then
+			pid=$(netstat -tunlp 2>/dev/null | awk -v p=":${port}" '$0 ~ p { if(match($0, /[0-9]+\/[^ ]+/)) { split($0,a," "); for(i=1;i<=NF;i++){ if(a[i] ~ /\/./){ split(a[i],b,"/"); print b[1]; exit } } } }' | head -n1 || true)
+		fi
+	fi
 
 	if [ -n "${pid}" ]; then
-		echo "Port ${port} is currently used by pid ${pid}. Attempting to stop it..."
+		owner_cmd=""
+		if [ -r "/proc/${pid}/cmdline" ]; then
+			owner_cmd=$(tr '\0' ' ' < /proc/${pid}/cmdline || true)
+		fi
+		echo "Port ${port} is currently used by pid ${pid}. Command: ${owner_cmd}. Attempting to stop it..."
 		# Try graceful termination
 		kill -TERM "${pid}" 2>/dev/null || true
 		# Wait up to 5 seconds for process to exit
