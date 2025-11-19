@@ -1,0 +1,17 @@
+1.run server in Visual Studio Code:
+>>>>
+python manage.py runserver
+<<<<
+
+2. cd to path in powershell:
+>>>>
+cd C:\PlantLeafDiseasePrediction\scripts
+<<<<
+
+3. Import model
+>>>>
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+<<<<
+>>>>
+.\init_model.ps1
+<<<<
