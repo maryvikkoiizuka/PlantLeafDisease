@@ -14,8 +14,8 @@ export TF_NUM_INTEROP_THREADS=${TF_NUM_INTEROP_THREADS:-1}
 export KMP_BLOCKTIME=${KMP_BLOCKTIME:-1}
 export KMP_AFFINITY=${KMP_AFFINITY:-"granularity=fine,compact,1,0"}
 
-# Allow override of Gunicorn args via env var; otherwise keep minimal workers
-export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=2 --timeout 120}
+# Allow override of Gunicorn args via env var; otherwise use optimized settings
+export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=1 --timeout=600 --graceful-timeout=120 --max-requests=50 --max-requests-jitter=10 --log-level=info --error-logfile - --access-logfile -}
 
 echo "Starting entrypoint: TF envs set. TF_CPP_MIN_LOG_LEVEL=${TF_CPP_MIN_LOG_LEVEL}, OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 
@@ -146,20 +146,9 @@ if command -v gunicorn >/dev/null 2>&1; then
 	wait_for_port_free "${PORT}" || true
 	# Dump diagnostics just before starting Gunicorn
 	dump_diagnostics || true
-	# Start Gunicorn inside a retry loop so transient port bind failures
-	# (caused by hosting platform port detectors) don't make the container exit.
-	GUNICORN_MAX_RETRIES=${GUNICORN_MAX_RETRIES:-0} # 0 = infinite
-	retries=0
-	while :; do
-		gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS} && break || true
-		echo "Gunicorn failed to start (bind error?). Retry count=${retries}."
-		retries=$((retries + 1))
-		if [ "${GUNICORN_MAX_RETRIES}" -ne 0 ] && [ "${retries}" -ge "${GUNICORN_MAX_RETRIES}" ]; then
-			echo "Exceeded GUNICORN_MAX_RETRIES=${GUNICORN_MAX_RETRIES}; exiting with failure."
-			exit 1
-		fi
-		sleep 1
-	done
+	# Start Gunicorn directly without retry loop - Render manages container lifecycle
+	echo "Starting Gunicorn with command: gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}"
+	exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
 else
 	echo "gunicorn not found in PATH. Checking installed Python packages..."
 	if python -m pip show gunicorn >/dev/null 2>&1; then
