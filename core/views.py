@@ -63,31 +63,31 @@ def index(request):
                         destination.write(chunk)
 
 
-                # Prefer the persistent worker (single child) first for best latency.
-                # Fall back to the subprocess if the pool fails or returns an error.
+                # Try the isolated worker pool first, then fall back to subprocess per-request.
                 try:
                     _write_error_log('PREDICTION START: calling predict_via_worker()')
                     t0 = time.time()
                 except Exception:
                     t0 = time.time()
 
-                try:
-                    prediction = predict_via_worker(temp_path, timeout=None)
-                except Exception as e:
-                    prediction = {'error': f'Worker call failed: {str(e)}'}
+                prediction = predict_via_worker(temp_path, timeout=300)
 
-                # If worker failed, fallback to subprocess
+                # If worker approach failed or returned timeout, fallback to subprocess
                 if not prediction or 'error' in prediction:
                     try:
                         _write_error_log('PREDICTION FALLBACK: using subprocess')
                     except Exception:
                         pass
+
+                    # Try to pass configured model paths if available
                     try:
                         detector = get_detector()
                         model_path = getattr(detector, 'model_path', None)
+                        # class indices path is not stored on detector; leave as None
                     except Exception:
                         model_path = None
-                    prediction = predict_via_subprocess(temp_path, timeout=None, model_path=model_path)
+
+                    prediction = predict_via_subprocess(temp_path, timeout=300, model_path=model_path)
 
                 try:
                     t1 = time.time()
