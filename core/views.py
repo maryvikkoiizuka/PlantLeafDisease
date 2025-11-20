@@ -6,7 +6,25 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 import os
 import json
+import logging
+import traceback
+from datetime import datetime
 from .ml_model import get_detector, initialize_model
+
+# Module logger
+logger = logging.getLogger(__name__)
+
+def _write_error_log(extra_info: str):
+    try:
+        log_path = os.path.join(settings.BASE_DIR, 'render_errors.log')
+        ts = datetime.utcnow().isoformat() + 'Z'
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(f"=== {ts} ===\n")
+            f.write(extra_info)
+            f.write('\n\n')
+    except Exception:
+        # Best-effort logging: do not raise
+        logger.exception('Failed to write render_errors.log')
 
 
 def health(request):
@@ -30,54 +48,71 @@ def index(request):
     Handles both GET requests (displaying the form) and POST requests (file upload).
     """
     if request.method == 'POST':
-        # Handle file upload
-        if 'image' in request.FILES:
-            try:
+        try:
+            # Handle file upload
+            if 'image' in request.FILES:
                 uploaded_file = request.FILES['image']
-                
+
                 # Save uploaded file temporarily
                 temp_path = os.path.join(settings.MEDIA_ROOT, uploaded_file.name)
                 os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
-                
+
                 with open(temp_path, 'wb+') as destination:
                     for chunk in uploaded_file.chunks():
                         destination.write(chunk)
-                
+
                 # Get prediction from ML model
                 detector = get_detector()
-                
+
                 if detector.model is None:
                     return JsonResponse({
                         'success': False,
                         'error': 'ML model not loaded. Please initialize the model first.'
                     })
-                
+
                 prediction = detector.predict(temp_path)
-                
+
                 # Clean up temp file
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
-                
+
                 if 'error' in prediction:
                     return JsonResponse({
                         'success': False,
                         'error': prediction['error']
                     })
-                
+
                 return JsonResponse({
                     'success': True,
                     'predicted_class': prediction['disease'],
                     'confidence': prediction['confidence'] * 100,  # Convert to percentage
                     'message': f"Detected: {prediction['disease']} (Confidence: {prediction['confidence']:.2%})"
                 })
-            
-            except Exception as e:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'Error processing image: {str(e)}'
-                })
-        else:
-            return JsonResponse({'success': False, 'error': 'No file provided'})
+            else:
+                return JsonResponse({'success': False, 'error': 'No file provided'})
+        except Exception as e:
+            # Build detailed diagnostic info for logs (do not expose sensitive data to client)
+            tb = traceback.format_exc()
+            try:
+                meta_info = {
+                    'path': request.path,
+                    'method': request.method,
+                    'content_length': request.META.get('CONTENT_LENGTH'),
+                    'remote_addr': request.META.get('REMOTE_ADDR'),
+                    'user_agent': request.META.get('HTTP_USER_AGENT')
+                }
+            except Exception:
+                meta_info = {'path': request.path}
+
+            extra = f"Exception: {str(e)}\nMeta: {json.dumps(meta_info)}\nTraceback:\n{tb}"
+            logger.exception('Unhandled error in index view: %s', str(e))
+            _write_error_log(extra)
+
+            # Return a safe JSON error for the client
+            return JsonResponse({
+                'success': False,
+                'error': 'Server error while processing the image. Details logged.'
+            }, status=500)
     
     return render(request, 'index.html')
 

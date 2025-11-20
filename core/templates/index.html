@@ -1684,11 +1684,27 @@
                     method: 'POST',
                     body: formData,
                     headers: { 'X-CSRFToken': csrfToken },
-                    signal
+                    signal,
+                    // ensure cookies are sent for CSRF validation on same-origin
+                    credentials: 'same-origin'
                 });
 
-                // If aborted, fetch will throw; otherwise continue
-                const data = await response.json();
+                // Read response text first (safer for diagnosing non-JSON/empty responses)
+                const rawText = await response.text();
+                let data = null;
+                if (rawText && rawText.trim().length > 0) {
+                    try {
+                        data = JSON.parse(rawText);
+                    } catch (parseErr) {
+                        // Non-JSON response; throw with details so UI can show it
+                        throw new Error(`Invalid JSON response (status ${response.status}): ${rawText.substring(0,1000)}`);
+                    }
+                } else {
+                    // Empty body
+                    if (!response.ok) {
+                        throw new Error(`Empty response body (status ${response.status}).`);
+                    }
+                }
 
                 if (data.success) {
                     const raw = data.predicted_class || '';
