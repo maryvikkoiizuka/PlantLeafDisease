@@ -144,9 +144,22 @@ if command -v gunicorn >/dev/null 2>&1; then
 	}
 	# Wait for short period to avoid racing with Render's port detector
 	wait_for_port_free "${PORT}" || true
-	# Dump diagnostics just before exec to capture the immediate state
+	# Dump diagnostics just before starting Gunicorn
 	dump_diagnostics || true
-	exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
+	# Start Gunicorn inside a retry loop so transient port bind failures
+	# (caused by hosting platform port detectors) don't make the container exit.
+	GUNICORN_MAX_RETRIES=${GUNICORN_MAX_RETRIES:-0} # 0 = infinite
+	retries=0
+	while :; do
+		gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS} && break || true
+		echo "Gunicorn failed to start (bind error?). Retry count=${retries}."
+		retries=$((retries + 1))
+		if [ "${GUNICORN_MAX_RETRIES}" -ne 0 ] && [ "${retries}" -ge "${GUNICORN_MAX_RETRIES}" ]; then
+			echo "Exceeded GUNICORN_MAX_RETRIES=${GUNICORN_MAX_RETRIES}; exiting with failure."
+			exit 1
+		fi
+		sleep 1
+	done
 else
 	echo "gunicorn not found in PATH. Checking installed Python packages..."
 	if python -m pip show gunicorn >/dev/null 2>&1; then
@@ -164,7 +177,19 @@ else
 			echo "gunicorn installed; starting gunicorn now"
 			wait_for_port_free "${PORT}" || true
 			dump_diagnostics || true
-			exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
+			# Retry loop for installed gunicorn as well
+			GUNICORN_MAX_RETRIES=${GUNICORN_MAX_RETRIES:-0}
+			retries=0
+			while :; do
+				gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS} && break || true
+				echo "Gunicorn failed to start (bind error?). Retry count=${retries}."
+				retries=$((retries + 1))
+				if [ "${GUNICORN_MAX_RETRIES}" -ne 0 ] && [ "${retries}" -ge "${GUNICORN_MAX_RETRIES}" ]; then
+					echo "Exceeded GUNICORN_MAX_RETRIES=${GUNICORN_MAX_RETRIES}; exiting with failure."
+					exit 1
+				fi
+				sleep 1
+			done
 		else
 			echo "gunicorn still not found after installation attempt; falling back to runserver"
 		fi
