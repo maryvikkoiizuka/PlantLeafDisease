@@ -9,7 +9,7 @@ import json
 import logging
 import traceback
 from datetime import datetime
-from .ml_model import get_detector, initialize_model, predict_via_worker, get_inference_pool
+from .ml_model import get_detector, initialize_model, predict_via_worker, get_inference_pool, predict_via_subprocess
 import time
 
 # Module logger
@@ -63,7 +63,7 @@ def index(request):
                         destination.write(chunk)
 
 
-                # Get prediction from isolated worker process
+                # Try the isolated worker pool first, then fall back to subprocess per-request.
                 try:
                     _write_error_log('PREDICTION START: calling predict_via_worker()')
                     t0 = time.time()
@@ -71,6 +71,23 @@ def index(request):
                     t0 = time.time()
 
                 prediction = predict_via_worker(temp_path, timeout=300)
+
+                # If worker approach failed or returned timeout, fallback to subprocess
+                if not prediction or 'error' in prediction:
+                    try:
+                        _write_error_log('PREDICTION FALLBACK: using subprocess')
+                    except Exception:
+                        pass
+
+                    # Try to pass configured model paths if available
+                    try:
+                        detector = get_detector()
+                        model_path = getattr(detector, 'model_path', None)
+                        # class indices path is not stored on detector; leave as None
+                    except Exception:
+                        model_path = None
+
+                    prediction = predict_via_subprocess(temp_path, timeout=300, model_path=model_path)
 
                 try:
                     t1 = time.time()

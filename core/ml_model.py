@@ -15,6 +15,10 @@ import json
 from multiprocessing import Pool, TimeoutError
 from pathlib import Path
 import multiprocessing
+import subprocess
+import shlex
+import sys
+import json as _json
 PLANT_DISEASE_AI_PATH = r"c:\Users\admin\OneDrive - Auckland Institute of Studies\Desktop\PlantDiseaseAI"
 if PLANT_DISEASE_AI_PATH not in sys.path:
     sys.path.insert(0, PLANT_DISEASE_AI_PATH)
@@ -355,6 +359,50 @@ def predict_via_worker(image_path, timeout=240, model_path=None, class_indices_p
             except Exception:
                 pass
         return {'error': f'Inference worker error: {str(e)}'}
+
+
+def predict_via_subprocess(image_path, timeout=240, model_path=None, class_indices_path=None):
+    """Run prediction in a short-lived subprocess to isolate native crashes.
+
+    Returns parsed JSON dict on success or {'error': ...} on failure/timeout.
+    """
+    # Resolve script path relative to this file
+    repo_root = Path(__file__).resolve().parents[1]
+    script_path = os.path.join(str(repo_root), 'core', 'inference_subprocess.py')
+
+    # If model paths not provided, try defaults inside repository
+    if not model_path or not class_indices_path:
+        dmodel, dci = _default_model_paths()
+        model_path = model_path or dmodel
+        class_indices_path = class_indices_path or dci
+
+    # Build command using same Python executable
+    cmd = [sys.executable, script_path, image_path, model_path or '', class_indices_path or '']
+
+    try:
+        # Run subprocess and capture stdout/stderr
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return {'error': 'Inference subprocess timeout'}
+    except Exception as e:
+        return {'error': f'Failed to spawn inference subprocess: {str(e)}'}
+
+    # If non-zero exit, treat as error but attempt to parse stdout
+    out = res.stdout.strip() if res.stdout else ''
+    err = res.stderr.strip() if res.stderr else ''
+
+    if out:
+        try:
+            parsed = _json.loads(out)
+            return parsed
+        except Exception:
+            return {'error': f'Invalid JSON from subprocess. stdout={out!r}, stderr={err!r}'}
+
+    # No stdout: return stderr
+    if err:
+        return {'error': f'Inference subprocess error: {err}'}
+
+    return {'error': 'Inference subprocess produced no output'}
 
 
 def get_detector():
