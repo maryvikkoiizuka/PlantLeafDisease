@@ -1,0 +1,2 @@
+# Dockerfile removed per user request.
+# This file was intentionally emptied by the assistant at user's direction.

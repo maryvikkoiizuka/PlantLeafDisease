@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +24,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-^a_2&^fb$&4gxkks!)$rtwtml9q4wc3z$n15l!3+rtdz4y6vik'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes")
 
-ALLOWED_HOSTS = []
+# Configure ALLOWED_HOSTS from environment for safer production deployments.
+# Set the environment variable `ALLOWED_HOSTS` to a comma-separated list of
+# hostnames (e.g. `example.com,api.example.com`). If not provided, we include
+# common local values so development continues to work.
+raw_allowed = os.environ.get("ALLOWED_HOSTS", "")
+if raw_allowed:
+    ALLOWED_HOSTS = [h.strip() for h in raw_allowed.split(",") if h.strip()]
+else:
+    # If Render exposes the external hostname via env, include it automatically
+    render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME") or os.environ.get("RENDER_SERVICE_NAME")
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+    if render_host:
+        ALLOWED_HOSTS.append(render_host)
 
 
 # Application definition
