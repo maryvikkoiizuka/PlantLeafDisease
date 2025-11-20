@@ -81,6 +81,9 @@ def main():
                             h = int(sl[0]); w = int(sl[1]); self.image_size = (w,h)
                         elif len(sl) == 3 and (sl[0] == 1 or sl[0] == 3):
                             h = int(sl[1]); w = int(sl[2]); self.image_size = (w,h)
+            except Exception:
+                # Non-fatal: leave default image_size
+                pass
 
         def load_class_indices(self, jp):
             try:
