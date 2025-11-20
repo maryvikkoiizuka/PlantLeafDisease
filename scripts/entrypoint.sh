@@ -113,7 +113,7 @@ if command -v gunicorn >/dev/null 2>&1; then
 	echo "gunicorn found: $(gunicorn --version 2>&1 | head -n1)"
 	echo "Starting Gunicorn on 0.0.0.0:${PORT}"
 	# Wait for the assigned PORT to become free (Render may briefly bind it)
-	WAIT_FOR_PORT_FREE_SECONDS=${WAIT_FOR_PORT_FREE_SECONDS:-60}
+	WAIT_FOR_PORT_FREE_SECONDS=${WAIT_FOR_PORT_FREE_SECONDS:-120}
 	wait_for_port_free() {
 		local port=$1
 		local timeout=${2:-${WAIT_FOR_PORT_FREE_SECONDS}}

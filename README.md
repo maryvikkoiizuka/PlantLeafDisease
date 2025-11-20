@@ -17,4 +17,13 @@ Notes and troubleshooting:
 - If TensorFlow runs out of memory on Render, try a larger instance, or use Docker to control the Python runtime and TF wheel more precisely, or serve the model via TensorFlow Serving.
 
 After updating the Start Command or adding the `Procfile`, redeploy the service from the Render dashboard.
+## Port wait configuration
+
+The entrypoint script waits briefly for Render's port detector to release the assigned `$PORT` before starting Gunicorn. If your service occasionally races with Render's internal port checker you can increase the wait timeout by setting an environment variable in the Render dashboard:
+
+```bash
+WAIT_FOR_PORT_FREE_SECONDS=60
+```
+
+Set it higher (for example `120`) if you continue to see port races. The default in the repo is 60 seconds.
 

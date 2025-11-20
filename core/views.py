@@ -9,6 +9,20 @@ import json
 from .ml_model import get_detector, initialize_model
 
 
+def health(request):
+    """Readiness endpoint: returns 200 only when the ML model is loaded.
+
+    Returns JSON with `model_loaded: true|false`. If the model is not yet
+    loaded the endpoint returns HTTP 503 so load balancers know to wait.
+    """
+    detector = get_detector()
+    model_loaded = detector.model is not None
+    if model_loaded:
+        return JsonResponse({"status": "ok", "model_loaded": True})
+    else:
+        return JsonResponse({"status": "starting", "model_loaded": False}, status=503)
+
+
 @require_http_methods(["GET", "POST"])
 def index(request):
     """
