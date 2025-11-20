@@ -15,7 +15,9 @@ export KMP_BLOCKTIME=${KMP_BLOCKTIME:-1}
 export KMP_AFFINITY=${KMP_AFFINITY:-"granularity=fine,compact,1,0"}
 
 # Gunicorn configuration (can override with env GUNICORN_CMD_ARGS)
-export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=2 --timeout 120}
+## Increase default timeout: some predictions may take longer than 120s on limited CPUs.
+## Allow max-requests to recycle workers and reduce memory growth over time.
+export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=2 --timeout 300 --max-requests=50 --max-requests-jitter=10 --log-level=info}
 
 # -------------------------------------------------------------
 # Confirm Render-assigned port
