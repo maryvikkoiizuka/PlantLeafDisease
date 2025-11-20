@@ -5,20 +5,14 @@ This module handles the connection to the PlantDiseaseAI model
 """
 
 import os
-import os
 import sys
 import threading
 import numpy as np
 from tensorflow import keras
 from PIL import Image
 import json
-from multiprocessing import Pool, TimeoutError
-from pathlib import Path
-import multiprocessing
-import subprocess
-import shlex
-import sys
-import json as _json
+
+# Add the PlantDiseaseAI project to the path
 PLANT_DISEASE_AI_PATH = r"c:\Users\admin\OneDrive - Auckland Institute of Studies\Desktop\PlantDiseaseAI"
 if PLANT_DISEASE_AI_PATH not in sys.path:
     sys.path.insert(0, PLANT_DISEASE_AI_PATH)
@@ -260,149 +254,6 @@ class PlantDiseaseDetector:
 # Global model instance + lock for thread-safe lazy initialization
 _detector_instance = None
 _detector_lock = threading.Lock()
-
-# Multiprocessing pool for isolated inference (single persistent child)
-_inference_pool = None
-_pool_lock = threading.Lock()
-
-
-def _worker_initializer(model_path, class_indices_path):
-    """Initializer run inside the pool worker to create a detector instance."""
-    global _worker_detector
-    _worker_detector = PlantDiseaseDetector()
-    # Try to load provided model paths if available
-    try:
-        if model_path and os.path.exists(model_path):
-            _worker_detector.load_model(model_path)
-    except Exception:
-        # Best effort: don't raise — worker should start even if model missing
-        print('Worker: failed to load model during init')
-
-    try:
-        if class_indices_path and os.path.exists(class_indices_path):
-            _worker_detector.load_class_indices(class_indices_path)
-    except Exception:
-        print('Worker: failed to load class indices during init')
-
-
-def _worker_predict(image_path):
-    """Function executed in the worker process to perform prediction."""
-    try:
-        # Use the preloaded detector in worker
-        if '_worker_detector' not in globals() or _worker_detector is None:
-            return {'error': 'Worker detector not initialized'}
-        return _worker_detector.predict(image_path)
-    except Exception as e:
-        return {'error': f'Worker prediction exception: {str(e)}'}
-
-
-def _default_model_paths():
-    # Try to infer repository root and default models location
-    repo_root = Path(__file__).resolve().parents[1]
-    model_path = os.path.join(str(repo_root), 'models', 'plant_disease_model.keras')
-    class_indices_path = os.path.join(str(repo_root), 'models', 'class_indices.json')
-    return model_path, class_indices_path
-
-
-def get_inference_pool(model_path=None, class_indices_path=None):
-    """Get or create the single-worker Pool used for isolated inference.
-
-    The pool is created lazily and cached. model_path and class_indices_path
-    are optional and will be used on pool initialization if provided.
-    """
-    global _inference_pool
-    with _pool_lock:
-        if _inference_pool is None:
-            # Determine defaults if not provided
-            if not model_path or not class_indices_path:
-                dmodel, dci = _default_model_paths()
-                model_path = model_path or dmodel
-                class_indices_path = class_indices_path or dci
-
-            # Create a pool with a single worker that runs the initializer
-            # Note: use maxtasksperchild None so the worker persists; recycling handled by --max-requests in gunicorn
-            _inference_pool = Pool(processes=1, initializer=_worker_initializer, initargs=(model_path, class_indices_path))
-        return _inference_pool
-
-
-def predict_via_worker(image_path, timeout=240, model_path=None, class_indices_path=None):
-    """Run prediction in the isolated worker process with a timeout.
-
-    Returns the prediction dict on success or a dict with 'error'.
-    """
-    pool = get_inference_pool(model_path=model_path, class_indices_path=class_indices_path)
-    try:
-        async_result = pool.apply_async(_worker_predict, (image_path,))
-        return async_result.get(timeout)
-    except TimeoutError:
-        # Worker likely hung; terminate and restart pool for future requests
-        try:
-            pool.terminate()
-        except Exception:
-            pass
-        with _pool_lock:
-            try:
-                # Destroy the pool reference so it will be recreated on next call
-                globals()['_inference_pool'] = None
-            except Exception:
-                pass
-        return {'error': 'Inference timeout'}
-    except Exception as e:
-        # On any other error, try to restart the pool
-        try:
-            pool.terminate()
-        except Exception:
-            pass
-        with _pool_lock:
-            try:
-                globals()['_inference_pool'] = None
-            except Exception:
-                pass
-        return {'error': f'Inference worker error: {str(e)}'}
-
-
-def predict_via_subprocess(image_path, timeout=240, model_path=None, class_indices_path=None):
-    """Run prediction in a short-lived subprocess to isolate native crashes.
-
-    Returns parsed JSON dict on success or {'error': ...} on failure/timeout.
-    """
-    # Resolve script path relative to this file
-    repo_root = Path(__file__).resolve().parents[1]
-    script_path = os.path.join(str(repo_root), 'core', 'inference_subprocess.py')
-
-    # If model paths not provided, try defaults inside repository
-    if not model_path or not class_indices_path:
-        dmodel, dci = _default_model_paths()
-        model_path = model_path or dmodel
-        class_indices_path = class_indices_path or dci
-
-    # Build command using same Python executable
-    cmd = [sys.executable, script_path, image_path, model_path or '', class_indices_path or '']
-
-    try:
-        # Run subprocess and capture stdout/stderr
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        return {'error': 'Inference subprocess timeout'}
-    except Exception as e:
-        return {'error': f'Failed to spawn inference subprocess: {str(e)}'}
-
-    # If non-zero exit, treat as error but attempt to parse stdout
-    out = res.stdout.strip() if res.stdout else ''
-    err = res.stderr.strip() if res.stderr else ''
-
-    if out:
-        try:
-            parsed = _json.loads(out)
-            return parsed
-        except Exception:
-            return {'error': f'Invalid JSON from subprocess. stdout={out!r}, stderr={err!r}'}
-
-    # No stdout: return stderr
-    if err:
-        return {'error': f'Inference subprocess error: {err}'}
-
-    return {'error': 'Inference subprocess produced no output'}
 
 
 def get_detector():

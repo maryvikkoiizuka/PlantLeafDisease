@@ -21,24 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^a_2&^fb$&4gxkks!)$rtwtml9q4wc3z$n15l!3+rtdz4y6vik'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-^a_2&^fb$&4gxkks!)$rtwtml9q4wc3z$n15l!3+rtdz4y6vik')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes")
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Configure ALLOWED_HOSTS from environment for safer production deployments.
-# Set the environment variable `ALLOWED_HOSTS` to a comma-separated list of
-# hostnames (e.g. `example.com,api.example.com`). If not provided, we include
-# common local values so development continues to work.
-raw_allowed = os.environ.get("ALLOWED_HOSTS", "")
-if raw_allowed:
-    ALLOWED_HOSTS = [h.strip() for h in raw_allowed.split(",") if h.strip()]
-else:
-    # If Render exposes the external hostname via env, include it automatically
-    render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME") or os.environ.get("RENDER_SERVICE_NAME")
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-    if render_host:
-        ALLOWED_HOSTS.append(render_host)
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -55,6 +43,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -140,3 +129,19 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Production Security Settings
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_SECURITY_POLICY = {
+        "default-src": ("'self'",),
+        "script-src": ("'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"),
+        "style-src": ("'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"),
+        "img-src": ("'self'", "data:"),
+    }
+
+# WhiteNoise Settings for Static Files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
