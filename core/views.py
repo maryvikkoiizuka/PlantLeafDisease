@@ -196,3 +196,23 @@ def debug_render_errors(request):
     except Exception as e:
         logger.exception('Failed to read render_errors.log')
         return JsonResponse({'status': 'error', 'message': 'Could not read log file'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def ping(request):
+    """Lightweight test endpoint to verify POST reaches Django without running prediction.
+
+    Use this to distinguish platform-level 502s from model-processing errors.
+    It's CSRF-exempt so it can be called from curl without cookies.
+    """
+    try:
+        cl = request.META.get('CONTENT_LENGTH')
+        return JsonResponse({
+            'status': 'ok',
+            'method': request.method,
+            'content_length': cl,
+        })
+    except Exception as e:
+        logger.exception('Error in ping endpoint')
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
