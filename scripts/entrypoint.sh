@@ -142,12 +142,8 @@ if command -v gunicorn >/dev/null 2>&1; then
 			sleep 1
 		done
 	}
-	# Wait for short period to avoid racing with Render's port detector
-	wait_for_port_free "${PORT}" || true
-	# Dump diagnostics just before starting Gunicorn
-	dump_diagnostics || true
-	# Start Gunicorn directly without retry loop - Render manages container lifecycle
-	echo "Starting Gunicorn with command: gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}"
+	# Start Gunicorn directly - Render manages container lifecycle
+	echo "Starting Gunicorn on 0.0.0.0:${PORT}"
 	exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
 else
 	echo "gunicorn not found in PATH. Checking installed Python packages..."
