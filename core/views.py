@@ -9,7 +9,8 @@ import json
 import logging
 import traceback
 from datetime import datetime
-from .ml_model import get_detector, initialize_model
+from .ml_model import get_detector, initialize_model, predict_via_worker, get_inference_pool
+import time
 
 # Module logger
 logger = logging.getLogger(__name__)
@@ -61,16 +62,21 @@ def index(request):
                     for chunk in uploaded_file.chunks():
                         destination.write(chunk)
 
-                # Get prediction from ML model
-                detector = get_detector()
 
-                if detector.model is None:
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'ML model not loaded. Please initialize the model first.'
-                    })
+                # Get prediction from isolated worker process
+                try:
+                    _write_error_log('PREDICTION START: calling predict_via_worker()')
+                    t0 = time.time()
+                except Exception:
+                    t0 = time.time()
 
-                prediction = detector.predict(temp_path)
+                prediction = predict_via_worker(temp_path, timeout=300)
+
+                try:
+                    t1 = time.time()
+                    _write_error_log(f'PREDICTION END: elapsed_seconds={t1 - t0:.3f}')
+                except Exception:
+                    logger.exception('Failed to write post-prediction log')
 
                 # Clean up temp file
                 if os.path.exists(temp_path):
@@ -149,6 +155,13 @@ def initialize_model_view(request):
         # Load class indices if provided
         if class_indices_path and os.path.exists(class_indices_path):
             detector.load_class_indices(class_indices_path)
+
+        # Also ensure the worker pool is initialized with the same model paths
+        try:
+            # This will lazily start a single-worker pool that preloads the model
+            get_inference_pool(model_path=model_path, class_indices_path=class_indices_path)
+        except Exception:
+            logger.exception('Failed to initialize inference worker pool')
         
         if detector.model is not None:
             return JsonResponse({

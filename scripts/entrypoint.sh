@@ -17,7 +17,9 @@ export KMP_AFFINITY=${KMP_AFFINITY:-"granularity=fine,compact,1,0"}
 # Gunicorn configuration (can override with env GUNICORN_CMD_ARGS)
 ## Increase default timeout: some predictions may take longer than 120s on limited CPUs.
 ## Allow max-requests to recycle workers and reduce memory growth over time.
-export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=2 --timeout 300 --max-requests=50 --max-requests-jitter=10 --log-level=info}
+## Use a single thread to avoid TensorFlow threading deadlocks inside worker processes
+## Increase timeout further to allow longer-running inferences (but see notes below)
+export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=1 --timeout 600 --graceful-timeout=120 --max-requests=50 --max-requests-jitter=10 --log-level=info}
 
 # -------------------------------------------------------------
 # Confirm Render-assigned port
