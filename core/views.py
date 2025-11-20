@@ -63,23 +63,31 @@ def index(request):
                         destination.write(chunk)
 
 
-                # Run inference in a short-lived subprocess to avoid worker deadlocks.
-                # This is more reliable in constrained environments; if you need
-                # lower latency we can re-introduce the worker-pool as an opt-in.
+                # Prefer the persistent worker (single child) first for best latency.
+                # Fall back to the subprocess if the pool fails or returns an error.
                 try:
-                    _write_error_log('PREDICTION START: calling predict_via_subprocess()')
+                    _write_error_log('PREDICTION START: calling predict_via_worker()')
                     t0 = time.time()
                 except Exception:
                     t0 = time.time()
 
-                # Try to pass configured model path found on the in-process detector
                 try:
-                    detector = get_detector()
-                    model_path = getattr(detector, 'model_path', None)
-                except Exception:
-                    model_path = None
+                    prediction = predict_via_worker(temp_path, timeout=None)
+                except Exception as e:
+                    prediction = {'error': f'Worker call failed: {str(e)}'}
 
-                prediction = predict_via_subprocess(temp_path, timeout=300, model_path=model_path)
+                # If worker failed, fallback to subprocess
+                if not prediction or 'error' in prediction:
+                    try:
+                        _write_error_log('PREDICTION FALLBACK: using subprocess')
+                    except Exception:
+                        pass
+                    try:
+                        detector = get_detector()
+                        model_path = getattr(detector, 'model_path', None)
+                    except Exception:
+                        model_path = None
+                    prediction = predict_via_subprocess(temp_path, timeout=None, model_path=model_path)
 
                 try:
                     t1 = time.time()

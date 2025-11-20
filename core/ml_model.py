@@ -19,6 +19,7 @@ import subprocess
 import shlex
 import sys
 import json as _json
+import os
 PLANT_DISEASE_AI_PATH = r"c:\Users\admin\OneDrive - Auckland Institute of Studies\Desktop\PlantDiseaseAI"
 if PLANT_DISEASE_AI_PATH not in sys.path:
     sys.path.insert(0, PLANT_DISEASE_AI_PATH)
@@ -361,7 +362,7 @@ def predict_via_worker(image_path, timeout=240, model_path=None, class_indices_p
         return {'error': f'Inference worker error: {str(e)}'}
 
 
-def predict_via_subprocess(image_path, timeout=240, model_path=None, class_indices_path=None):
+def predict_via_subprocess(image_path, timeout=None, model_path=None, class_indices_path=None):
     """Run prediction in a short-lived subprocess to isolate native crashes.
 
     Returns parsed JSON dict on success or {'error': ...} on failure/timeout.
@@ -369,6 +370,13 @@ def predict_via_subprocess(image_path, timeout=240, model_path=None, class_indic
     # Resolve script path relative to this file
     repo_root = Path(__file__).resolve().parents[1]
     script_path = os.path.join(str(repo_root), 'core', 'inference_subprocess.py')
+
+    # Determine timeout from env if not provided
+    if timeout is None:
+        try:
+            timeout = int(os.environ.get('INFERENCE_TIMEOUT', '600'))
+        except Exception:
+            timeout = 600
 
     # If model paths not provided, try defaults inside repository
     if not model_path or not class_indices_path:

@@ -1,0 +1,108 @@
+=== 2025-11-20T20:53:31Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:53:31Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/favicon.ico", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:53:39Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "POST", "path": "/", "content_length": "18907", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:53:39.755767Z ===
+PREDICTION START: calling predict_via_subprocess()
+
+=== 2025-11-20T20:53:39Z (subprocess) ===
+subprocess: importing TF/PIL
+
+=== 2025-11-20T20:53:43Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/.well-known/appspecific/com.chrome.devtools.json", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:53:51Z (subprocess) ===
+subprocess: imported TF/PIL successfully
+
+=== 2025-11-20T20:53:51Z (subprocess) ===
+subprocess: loading model from C:\PlantLeafDiseasePrediction\models\plant_disease_model.keras
+
+=== 2025-11-20T20:53:55Z (subprocess) ===
+subprocess: model loaded successfully
+
+=== 2025-11-20T20:53:55Z (subprocess) ===
+subprocess: starting prediction for C:\PlantLeafDiseasePrediction\media\test.JPG
+
+=== 2025-11-20T20:53:59Z (subprocess) ===
+subprocess: prediction finished: {'disease': 'Tomato_Late_blight', 'confidence': 0.0811721459031105, 'class_index': 7}
+
+=== 2025-11-20T20:54:00.716112Z ===
+PREDICTION END: elapsed_seconds=20.959
+
+=== 2025-11-20T20:54:24Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:54:24Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/.well-known/appspecific/com.chrome.devtools.json", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:54:43Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "POST", "path": "/", "content_length": "19299", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:54:43.160794Z ===
+PREDICTION START: calling predict_via_subprocess()
+
+=== 2025-11-20T20:54:43Z (subprocess) ===
+subprocess: importing TF/PIL
+
+=== 2025-11-20T20:54:54Z (subprocess) ===
+subprocess: imported TF/PIL successfully
+
+=== 2025-11-20T20:54:54Z (subprocess) ===
+subprocess: loading model from C:\PlantLeafDiseasePrediction\models\plant_disease_model.keras
+
+=== 2025-11-20T20:55:00Z (subprocess) ===
+subprocess: model loaded successfully
+
+=== 2025-11-20T20:55:00Z (subprocess) ===
+subprocess: starting prediction for C:\PlantLeafDiseasePrediction\media\0abffc81-6be8-4b17-a83c-4d2830e30382___JR_B.Spot 9076.JPG
+
+=== 2025-11-20T20:55:03Z (subprocess) ===
+subprocess: prediction finished: {'disease': 'Tomato_Late_blight', 'confidence': 0.08111492544412613, 'class_index': 7}
+
+=== 2025-11-20T20:55:05.659307Z ===
+PREDICTION END: elapsed_seconds=22.498
+
+=== 2025-11-20T20:57:38Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:57:39Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/.well-known/appspecific/com.chrome.devtools.json", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:57:45Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "POST", "path": "/", "content_length": "18634", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T20:57:45.631711Z ===
+PREDICTION START
+
+=== 2025-11-20T20:58:09.979954Z ===
+PREDICTION END: elapsed_seconds=24.347
+
+=== 2025-11-20T21:01:35.562181Z ===
+INFERENCE POOL: initialized successfully
+
+=== 2025-11-20T21:02:09.292977Z ===
+INFERENCE POOL: initialized successfully
+
+=== 2025-11-20T21:02:22.061876Z ===
+INFERENCE POOL: initialized successfully
+
+=== 2025-11-20T21:02:28Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T21:02:28Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "GET", "path": "/.well-known/appspecific/com.chrome.devtools.json", "content_length": "", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T21:02:34Z ===
+MIDDLEWARE REQUEST ARRIVAL: {"method": "POST", "path": "/", "content_length": "18634", "remote_addr": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+
+=== 2025-11-20T21:02:34.580758Z ===
+PREDICTION START: calling predict_via_worker()
+
+=== 2025-11-20T21:02:44.284746Z ===
+PREDICTION END: elapsed_seconds=9.703
+
