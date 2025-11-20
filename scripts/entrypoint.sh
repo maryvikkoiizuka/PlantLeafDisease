@@ -112,6 +112,38 @@ AUTO_INSTALL_GUNICORN=${AUTO_INSTALL_GUNICORN:-0}
 if command -v gunicorn >/dev/null 2>&1; then
 	echo "gunicorn found: $(gunicorn --version 2>&1 | head -n1)"
 	echo "Starting Gunicorn on 0.0.0.0:${PORT}"
+	# Wait for the assigned PORT to become free (Render may briefly bind it)
+	WAIT_FOR_PORT_FREE_SECONDS=${WAIT_FOR_PORT_FREE_SECONDS:-20}
+	wait_for_port_free() {
+		local port=$1
+		local timeout=${2:-${WAIT_FOR_PORT_FREE_SECONDS}}
+		local start=$(date +%s)
+		while :; do
+			# Check if any listener exists on the port
+			listener=""
+			if command -v ss >/dev/null 2>&1; then
+				listener=$(ss -ltn 2>/dev/null | awk -v p=":${port}" '$0 ~ p {print $0; exit }' || true)
+			elif command -v lsof >/dev/null 2>&1; then
+				listener=$(lsof -tiTCP:${port} -sTCP:LISTEN 2>/dev/null | head -n1 || true)
+			elif command -v netstat >/dev/null 2>&1; then
+				listener=$(netstat -tunlp 2>/dev/null | awk -v p=":${port}" '$0 ~ p {print $0; exit }' || true)
+			fi
+			if [ -z "${listener}" ]; then
+				echo "Port ${port} appears free; proceeding to start server."
+				return 0
+			fi
+			now=$(date +%s)
+			elapsed=$((now - start))
+			if [ ${elapsed} -ge ${timeout} ]; then
+				echo "Port ${port} still in use after ${timeout}s; proceeding to start anyway (Gunicorn may fail and log the error)."
+				return 1
+			fi
+			echo "Port ${port} currently in use; waiting for it to be released (elapsed ${elapsed}s)..."
+			sleep 1
+		done
+	}
+	# Wait for short period to avoid racing with Render's port detector
+	wait_for_port_free "${PORT}" || true
 	# Dump diagnostics just before exec to capture the immediate state
 	dump_diagnostics || true
 	exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
@@ -130,6 +162,7 @@ else
 		python -m pip install --no-cache-dir "gunicorn==20.1.0" || true
 		if command -v gunicorn >/dev/null 2>&1; then
 			echo "gunicorn installed; starting gunicorn now"
+			wait_for_port_free "${PORT}" || true
 			dump_diagnostics || true
 			exec gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:${PORT} ${GUNICORN_CMD_ARGS}
 		else
