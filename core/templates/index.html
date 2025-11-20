@@ -1696,7 +1696,22 @@
                     try {
                         data = JSON.parse(rawText);
                     } catch (parseErr) {
-                        // Non-JSON response; throw with details so UI can show it
+                        // Non-JSON response; attempt to fetch recent server logs (debug endpoint)
+                        try {
+                            const dbgResp = await fetch('/debug/render-errors/', { credentials: 'same-origin' });
+                            if (dbgResp.ok) {
+                                const dbgJson = await dbgResp.json();
+                                console.error('Server returned non-JSON response:', rawText.substring(0,1000));
+                                console.error('Server debug log (tail):', dbgJson.tail || '(empty)');
+                            } else {
+                                const dbgText = await dbgResp.text();
+                                console.error('Server returned non-JSON response and debug endpoint returned', dbgResp.status, dbgText);
+                            }
+                        } catch (dbgErr) {
+                            console.error('Failed to fetch debug logs:', dbgErr);
+                            console.error('Server non-JSON response (first 1000 chars):', rawText.substring(0,1000));
+                        }
+
                         throw new Error(`Invalid JSON response (status ${response.status}): ${rawText.substring(0,1000)}`);
                     }
                 } else {

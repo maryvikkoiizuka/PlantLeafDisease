@@ -171,3 +171,28 @@ def initialize_model_view(request):
             'status': 'error',
             'message': f'Error: {str(e)}'
         })
+
+
+@require_http_methods(["GET"])
+def debug_render_errors(request):
+    """Return the tail of the server-side `render_errors.log` for debugging.
+
+    This endpoint is intentionally guarded by `settings.DEBUG` to avoid
+    exposing logs in production. It returns JSON with `log_exists` and
+    `tail` (last ~4000 chars) when available.
+    """
+    if not settings.DEBUG:
+        return JsonResponse({'status': 'forbidden', 'message': 'Debug endpoint disabled'}, status=403)
+
+    log_path = os.path.join(settings.BASE_DIR, 'render_errors.log')
+    if not os.path.exists(log_path):
+        return JsonResponse({'status': 'ok', 'log_exists': False, 'tail': ''})
+
+    try:
+        with open(log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            tail = content[-4000:] if len(content) > 4000 else content
+        return JsonResponse({'status': 'ok', 'log_exists': True, 'tail': tail})
+    except Exception as e:
+        logger.exception('Failed to read render_errors.log')
+        return JsonResponse({'status': 'error', 'message': 'Could not read log file'}, status=500)
