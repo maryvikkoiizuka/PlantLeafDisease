@@ -23,6 +23,20 @@ def health(request):
         return JsonResponse({"status": "starting", "model_loaded": False}, status=503)
 
 
+def health_detail(request):
+    """Detailed health check endpoint with diagnostics."""
+    detector = get_detector()
+    model_loaded = detector.model is not None
+    
+    return JsonResponse({
+        "status": "ok" if model_loaded else "starting",
+        "model_loaded": model_loaded,
+        "model_path": detector.model_path if model_loaded else "Not loaded",
+        "class_indices_loaded": detector.class_indices is not None,
+        "image_size": detector.image_size,
+    }, status=200 if model_loaded else 503)
+
+
 @require_http_methods(["GET", "POST"])
 def index(request):
     """
