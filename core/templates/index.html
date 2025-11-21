@@ -1492,35 +1492,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Navigation menu functionality
-        document.querySelectorAll('.nav-menu a').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                
-                // Hide all sections
-                document.getElementById('home').style.display = 'block';
-                document.getElementById('diagnostics').style.display = 'none';
-                document.getElementById('about').style.display = 'none';
-                
-                // Show selected section
-                if (targetId === '#diagnostics') {
-                    document.getElementById('diagnostics').style.display = 'block';
-                    document.getElementById('home').style.display = 'none';
-                } else if (targetId === '#about') {
-                    document.getElementById('about').style.display = 'block';
-                    document.getElementById('home').style.display = 'none';
-                }
-            });
-        });
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
 
-        const fileInput = document.getElementById('fileInput');
-        const fileName = document.getElementById('fileName');
-        const form = document.querySelector('form');
-        const resultModalElement = document.getElementById('resultModal');
-        const resultModal = new bootstrap.Modal(resultModalElement);
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
+        function initializeApp() {
+            // Navigation menu functionality
+            const navLinks = document.querySelectorAll('.nav-menu a');
+            console.log('Found nav links:', navLinks.length);
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    console.log('Navigating to:', targetId);
+                    
+                    // Hide all sections
+                    document.getElementById('home').style.display = 'block';
+                    document.getElementById('diagnostics').style.display = 'none';
+                    document.getElementById('about').style.display = 'none';
+                    
+                    // Show selected section
+                    if (targetId === '#diagnostics') {
+                        document.getElementById('diagnostics').style.display = 'block';
+                        document.getElementById('home').style.display = 'none';
+                    } else if (targetId === '#about') {
+                        document.getElementById('about').style.display = 'block';
+                        document.getElementById('home').style.display = 'none';
+                    }
+                });
+            });
+
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const form = document.querySelector('form');
+            const resultModalElement = document.getElementById('resultModal');
+            const resultModal = new bootstrap.Modal(resultModalElement);
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
         
         // Track active fetch for cancellation
         let activeAbortController = null;
@@ -1924,6 +1936,7 @@
                 alert('Could not generate report for download.');
             }
         }
+        } // Close initializeApp function
     </script>
 </body>
 </html>
