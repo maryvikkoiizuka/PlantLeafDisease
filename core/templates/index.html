@@ -1864,6 +1864,7 @@
             const diagPanel = document.getElementById('diagInfo');
             if (diagPanel) { diagPanel.style.display = 'none'; diagPanel.setAttribute('aria-hidden','true'); }
         }
+
         function downloadResults() {
             // Use last parsed plant/description (fall back to modal text if needed)
             const plant = lastPlant || (document.getElementById('plantResult') && document.getElementById('plantResult').textContent) || 'Unknown';
