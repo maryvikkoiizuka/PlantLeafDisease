@@ -6,13 +6,7 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 import os
 import json
-import threading
-import time
 from .ml_model import get_detector, initialize_model
-
-# Cache for async predictions
-_prediction_cache = {}
-_cache_lock = threading.Lock()
 
 
 def health(request):
@@ -27,20 +21,6 @@ def health(request):
         return JsonResponse({"status": "ok", "model_loaded": True})
     else:
         return JsonResponse({"status": "starting", "model_loaded": False}, status=503)
-
-
-def health_detail(request):
-    """Detailed health check endpoint with diagnostics."""
-    detector = get_detector()
-    model_loaded = detector.model is not None
-    
-    return JsonResponse({
-        "status": "ok" if model_loaded else "starting",
-        "model_loaded": model_loaded,
-        "model_path": detector.model_path if model_loaded else "Not loaded",
-        "class_indices_loaded": detector.class_indices is not None,
-        "image_size": detector.image_size,
-    }, status=200 if model_loaded else 503)
 
 
 @require_http_methods(["GET", "POST"])
@@ -72,11 +52,7 @@ def index(request):
                         'error': 'ML model not loaded. Please initialize the model first.'
                     })
                 
-                # Run prediction with a timeout mechanism
-                try:
-                    prediction = detector.predict(temp_path)
-                except Exception as e:
-                    prediction = {"error": f"Prediction failed: {str(e)}"}
+                prediction = detector.predict(temp_path)
                 
                 # Clean up temp file
                 if os.path.exists(temp_path):

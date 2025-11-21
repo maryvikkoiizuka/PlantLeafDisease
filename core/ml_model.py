@@ -8,17 +8,12 @@ import os
 import sys
 import threading
 import numpy as np
-import logging
-
-# Optimize TensorFlow on startup
-os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Reduce TF logging
-os.environ.setdefault('TF_FORCE_GPU_ALLOW_GROWTH', 'true')
-
 from tensorflow import keras
 from PIL import Image
 import json
 
-logger = logging.getLogger(__name__)
+# TensorFlow optimization
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')
 
 
 class PlantDiseaseDetector:
