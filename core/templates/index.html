@@ -1433,7 +1433,7 @@
     <div class="container" id="diagnostics" style="display:none; margin-top: 20px; max-width: 500px;">
         <h1 class="title">Plant Leaf Disease Diagnostics</h1>
         
-        <form method="post" enctype="multipart/form-data" style="margin-top: 30px;">
+        <form method="post" action="/" enctype="multipart/form-data" style="margin-top: 30px;">
             {% csrf_token %}
             
             <div class="form-group">
@@ -1708,8 +1708,12 @@
                 
                 // Get CSRF token from form
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const endpoint = form.action || '/';
                 
-                const response = await fetch(form.action || '/', {
+                console.log('Submitting to:', endpoint);
+                console.log('CSRF token:', csrfToken ? 'present' : 'missing');
+                
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -1719,6 +1723,7 @@
                 });
                 
                 clearTimeout(timeoutId); // Clear timeout if request completes
+                console.log('Response status:', response.status);
 
                 const data = await response.json();
 
@@ -1787,9 +1792,13 @@
                 }
             } catch (error) {
                 if (error.name === 'AbortError') {
-                    console.log('Request was cancelled');
+                    console.log('Request was cancelled or timed out');
                 } else {
-                    console.error('Error:', error);
+                    console.error('Fetch Error:', error);
+                    console.error('Error name:', error.name);
+                    console.error('Error message:', error.message);
+                    console.error('Error stack:', error.stack);
+                }
                     // Show error in modal instead of alert
                     document.getElementById('plantResult').textContent = 'Connection Error';
                     document.getElementById('descriptionResult').textContent = '';
