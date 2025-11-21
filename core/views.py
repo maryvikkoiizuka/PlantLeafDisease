@@ -6,7 +6,10 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 import os
 import json
+import logging
 from .ml_model import get_detector, initialize_model
+
+logger = logging.getLogger(__name__)
 
 
 def health(request):
@@ -34,6 +37,7 @@ def index(request):
         if 'image' in request.FILES:
             try:
                 uploaded_file = request.FILES['image']
+                logger.info(f"Processing image: {uploaded_file.name}")
                 
                 # Save uploaded file temporarily
                 temp_path = os.path.join(settings.MEDIA_ROOT, uploaded_file.name)
@@ -43,16 +47,22 @@ def index(request):
                     for chunk in uploaded_file.chunks():
                         destination.write(chunk)
                 
+                logger.info(f"Image saved to: {temp_path}")
+                
                 # Get prediction from ML model
                 detector = get_detector()
+                logger.info(f"Detector model loaded: {detector.model is not None}")
                 
                 if detector.model is None:
+                    logger.error("ML model not loaded")
                     return JsonResponse({
                         'success': False,
                         'error': 'ML model not loaded. Please initialize the model first.'
                     })
                 
+                logger.info("Starting prediction...")
                 prediction = detector.predict(temp_path)
+                logger.info(f"Prediction complete: {prediction}")
                 
                 # Clean up temp file
                 if os.path.exists(temp_path):
@@ -72,6 +82,7 @@ def index(request):
                 })
             
             except Exception as e:
+                logger.error(f"Error processing image: {str(e)}", exc_info=True)
                 return JsonResponse({
                     'success': False,
                     'error': f'Error processing image: {str(e)}'

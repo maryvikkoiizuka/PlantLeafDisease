@@ -13,5 +13,5 @@ python manage.py migrate --noinput
 # Collect static files
 python manage.py collectstatic --noinput
 
-# Start Gunicorn
-gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:$PORT --workers=1 --threads=1 --timeout=600
+# Start Gunicorn with extended timeout for TensorFlow model loading
+gunicorn PlantLeafDiseasePrediction.wsgi:application --bind 0.0.0.0:$PORT --workers=1 --threads=1 --timeout=1200 --graceful-timeout=120

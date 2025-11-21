@@ -1702,12 +1702,14 @@
             fileReader.readAsDataURL(fileInput.files[0]);
 
             try {
-                // Create abort controller for cancellation
+                // Create abort controller for cancellation with 15 minute timeout (900s)
                 activeAbortController = new AbortController();
+                const timeoutId = setTimeout(() => activeAbortController.abort(), 900000); // 15 minutes
                 
                 // Get CSRF token from form
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 
+                console.log('Starting prediction request...');
                 const response = await fetch(form.action || '/', {
                     method: 'POST',
                     body: formData,
@@ -1717,7 +1719,11 @@
                     signal: activeAbortController.signal
                 });
 
+                clearTimeout(timeoutId);
+                console.log('Response received with status:', response.status);
+                
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 if (data.success) {
                     // Parse predicted class into plant and description
