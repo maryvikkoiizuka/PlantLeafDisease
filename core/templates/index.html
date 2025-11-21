@@ -1342,7 +1342,7 @@
                 <li>✓ Easy drag & drop interface</li>
             </ul>
         </p>
-        <button class="cta-button" onclick="document.querySelectorAll('.nav-menu a').forEach(link => { if(link.getAttribute('href') === '#diagnostics') link.click(); })">📸 Start Analyzing</button>
+        <button class="cta-button" onclick="showDiagnostics()">📸 Start Analyzing</button>
 
         <!-- Supported Crops Section (text left, icons right) -->
         <div class="supported-row">
@@ -1500,6 +1500,25 @@
         }
 
         function initializeApp() {
+            // Helper functions for navigation
+            window.showDiagnostics = function() {
+                document.getElementById('home').style.display = 'none';
+                document.getElementById('diagnostics').style.display = 'block';
+                document.getElementById('about').style.display = 'none';
+            };
+            
+            window.showHome = function() {
+                document.getElementById('home').style.display = 'block';
+                document.getElementById('diagnostics').style.display = 'none';
+                document.getElementById('about').style.display = 'none';
+            };
+            
+            window.showAbout = function() {
+                document.getElementById('home').style.display = 'none';
+                document.getElementById('diagnostics').style.display = 'none';
+                document.getElementById('about').style.display = 'block';
+            };
+            
             // Navigation menu functionality
             const navLinks = document.querySelectorAll('.nav-menu a');
             console.log('Found nav links:', navLinks.length);
@@ -1510,18 +1529,12 @@
                     const targetId = this.getAttribute('href');
                     console.log('Navigating to:', targetId);
                     
-                    // Hide all sections
-                    document.getElementById('home').style.display = 'block';
-                    document.getElementById('diagnostics').style.display = 'none';
-                    document.getElementById('about').style.display = 'none';
-                    
-                    // Show selected section
                     if (targetId === '#diagnostics') {
-                        document.getElementById('diagnostics').style.display = 'block';
-                        document.getElementById('home').style.display = 'none';
+                        showDiagnostics();
                     } else if (targetId === '#about') {
-                        document.getElementById('about').style.display = 'block';
-                        document.getElementById('home').style.display = 'none';
+                        showAbout();
+                    } else {
+                        showHome();
                     }
                 });
             });
