@@ -15,7 +15,8 @@ export KMP_BLOCKTIME=${KMP_BLOCKTIME:-1}
 export KMP_AFFINITY=${KMP_AFFINITY:-"granularity=fine,compact,1,0"}
 
 # Allow override of Gunicorn args via env var; otherwise use optimized settings
-export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=1 --timeout=600 --graceful-timeout=120 --max-requests=50 --max-requests-jitter=10 --log-level=info --error-logfile - --access-logfile -}
+# Increased timeout to 1200s (20 min) for ML model inference
+export GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS:---workers=1 --threads=1 --timeout=1200 --graceful-timeout=120 --max-requests=50 --max-requests-jitter=10 --log-level=info --error-logfile - --access-logfile -}
 
 echo "Starting entrypoint: TF envs set. TF_CPP_MIN_LOG_LEVEL=${TF_CPP_MIN_LOG_LEVEL}, OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 
