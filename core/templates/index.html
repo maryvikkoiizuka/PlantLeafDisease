@@ -1702,8 +1702,9 @@
             fileReader.readAsDataURL(fileInput.files[0]);
 
             try {
-                // Create abort controller for cancellation
+                // Create abort controller for cancellation with 5 minute timeout
                 activeAbortController = new AbortController();
+                const timeoutId = setTimeout(() => activeAbortController.abort(), 5 * 60 * 1000); // 5 minutes
                 
                 // Get CSRF token from form
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -1716,6 +1717,8 @@
                     },
                     signal: activeAbortController.signal
                 });
+                
+                clearTimeout(timeoutId); // Clear timeout if request completes
 
                 const data = await response.json();
 
