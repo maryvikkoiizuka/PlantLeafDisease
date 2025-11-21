@@ -1901,6 +1901,8 @@
             const diagPanel = document.getElementById('diagInfo');
             if (diagPanel) { diagPanel.style.display = 'none'; diagPanel.setAttribute('aria-hidden','true'); }
         }
+        } // Close initializeApp function
+        
         function downloadResults() {
             // Use last parsed plant/description (fall back to modal text if needed)
             const plant = lastPlant || (document.getElementById('plantResult') && document.getElementById('plantResult').textContent) || 'Unknown';
@@ -1949,7 +1951,6 @@
                 alert('Could not generate report for download.');
             }
         }
-        } // Close initializeApp function
     </script>
 </body>
 </html>
