@@ -1702,9 +1702,9 @@
             fileReader.readAsDataURL(fileInput.files[0]);
 
             try {
-                // Create abort controller for cancellation with 15 minute timeout (900s)
+                // Create abort controller for cancellation with 30 minute timeout (1800s)
                 activeAbortController = new AbortController();
-                const timeoutId = setTimeout(() => activeAbortController.abort(), 900000); // 15 minutes
+                const timeoutId = setTimeout(() => activeAbortController.abort(), 1800000); // 30 minutes
                 
                 // Get CSRF token from form
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -1722,7 +1722,22 @@
                 clearTimeout(timeoutId);
                 console.log('Response received with status:', response.status);
                 
-                const data = await response.json();
+                // Handle non-JSON responses (like 502 Bad Gateway)
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
+                
+                const responseText = await response.text();
+                console.log('Response text length:', responseText.length);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse JSON response:', responseText.substring(0, 500));
+                    throw new Error(`Invalid response from server: ${responseText.substring(0, 200)}`);
+                }
+                
                 console.log('Response data:', data);
 
                 if (data.success) {

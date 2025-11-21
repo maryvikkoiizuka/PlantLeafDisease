@@ -8,12 +8,16 @@ import os
 import sys
 import threading
 import numpy as np
+import logging
+
+# Suppress TensorFlow warnings and reduce verbosity
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '3')  # Suppress INFO and WARNING
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
 from tensorflow import keras
 from PIL import Image
 import json
-
-# TensorFlow optimization
-os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')
 
 
 class PlantDiseaseDetector:
