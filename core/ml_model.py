@@ -8,14 +8,17 @@ import os
 import sys
 import threading
 import numpy as np
+import logging
+
+# Optimize TensorFlow on startup
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Reduce TF logging
+os.environ.setdefault('TF_FORCE_GPU_ALLOW_GROWTH', 'true')
+
 from tensorflow import keras
 from PIL import Image
 import json
 
-# Add the PlantDiseaseAI project to the path
-PLANT_DISEASE_AI_PATH = r"c:\Users\admin\OneDrive - Auckland Institute of Studies\Desktop\PlantDiseaseAI"
-if PLANT_DISEASE_AI_PATH not in sys.path:
-    sys.path.insert(0, PLANT_DISEASE_AI_PATH)
+logger = logging.getLogger(__name__)
 
 
 class PlantDiseaseDetector:
