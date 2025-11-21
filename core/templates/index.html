@@ -1823,7 +1823,7 @@
                     console.error('Error name:', error.name);
                     console.error('Error message:', error.message);
                     console.error('Error stack:', error.stack);
-                }
+                    
                     // Show error in modal instead of alert
                     document.getElementById('plantResult').textContent = 'Connection Error';
                     document.getElementById('descriptionResult').textContent = '';
@@ -1901,7 +1901,6 @@
             const diagPanel = document.getElementById('diagInfo');
             if (diagPanel) { diagPanel.style.display = 'none'; diagPanel.setAttribute('aria-hidden','true'); }
         }
-        } // Close initializeApp function
         
         function downloadResults() {
             // Use last parsed plant/description (fall back to modal text if needed)
